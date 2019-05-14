@@ -6,6 +6,7 @@ import android.os.PersistableBundle;
 import android.view.Display;
 import android.view.View;
 
+import net.bashayer.baking.callback.LoadRecipesCallback;
 import net.bashayer.baking.callback.RecipesCallback;
 import net.bashayer.baking.callback.StepsCallback;
 import net.bashayer.baking.fragment.RecipeDetailsFragment;
@@ -14,8 +15,10 @@ import net.bashayer.baking.fragment.RecipesFragment;
 import net.bashayer.baking.model.Recipe;
 import net.bashayer.baking.model.Recipes;
 import net.bashayer.baking.model.Step;
+import net.bashayer.baking.network.NetworkUtils;
 
 import java.io.InputStream;
+import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -24,15 +27,14 @@ import androidx.fragment.app.FragmentTransaction;
 
 import static net.bashayer.baking.Constants.BUNDLE;
 import static net.bashayer.baking.Constants.IS_TWO_PANE_LAYOUT;
-import static net.bashayer.baking.Constants.ORIENTATION;
 import static net.bashayer.baking.Constants.RECIPE;
 import static net.bashayer.baking.Constants.RECIPES;
 import static net.bashayer.baking.Constants.STEP;
 
-public class MainActivity extends AppCompatActivity implements RecipesCallback, StepsCallback {
+public class MainActivity extends AppCompatActivity implements RecipesCallback, StepsCallback, LoadRecipesCallback {
 
     private FragmentManager fragmentManager;
-    private Recipes recipes;
+    private Recipes recipes = new Recipes();
     private Recipe recipe;
     private Step step;
 
@@ -42,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
 
     private boolean isTwoPaneLayout = false;
 
+    private NetworkUtils networkUtils;
     private Bundle bundle = new Bundle();
 
 
@@ -50,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        networkUtils = new NetworkUtils(this);
         if (findViewById(R.id.linear_layout) != null) {
             isTwoPaneLayout = true;
         }
@@ -62,8 +66,7 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
             }
         }
 
-
-        showRecipes();
+        networkUtils.loadRecipes();
     }
 
     private void setSavedState(Bundle bundle) {
@@ -86,9 +89,6 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
     }
 
     private void showRecipes() {
-        InputStream resourceReader = getResources().openRawResource(R.raw.response);
-        recipes = JSONUtils.getResponse(resourceReader);
-
         recipesFragment.setCallback(this);
         fragmentManager = getSupportFragmentManager();
 
@@ -186,5 +186,11 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
     protected void onSaveInstanceState(Bundle outState) {
         outState.putBundle(BUNDLE, bundle);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void loadRecipes(List<Recipe> recipes) {
+        this.recipes.setResponse(recipes);
+        showRecipes();
     }
 }
