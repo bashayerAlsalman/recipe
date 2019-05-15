@@ -29,6 +29,7 @@ import static net.bashayer.baking.Constants.BUNDLE;
 import static net.bashayer.baking.Constants.IS_TWO_PANE_LAYOUT;
 import static net.bashayer.baking.Constants.RECIPE;
 import static net.bashayer.baking.Constants.RECIPES;
+import static net.bashayer.baking.Constants.RECIPE_STEP;
 import static net.bashayer.baking.Constants.STEP;
 
 public class MainActivity extends AppCompatActivity implements RecipesCallback, StepsCallback, LoadRecipesCallback {
@@ -63,10 +64,13 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
             Bundle bundle = savedInstanceState.getBundle(BUNDLE);
             if (bundle != null) {
                 setSavedState(bundle);
+            } else {
+                networkUtils.loadRecipes();
             }
+        } else {
+            networkUtils.loadRecipes();
         }
 
-        networkUtils.loadRecipes();
     }
 
     private void setSavedState(Bundle bundle) {
@@ -78,64 +82,77 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
 
         fragmentManager = getSupportFragmentManager();
 
-        int id;
-        if (isTwoPaneLayout && step != null) {
-            id = R.id.recipes_steps;
+        if (step != null) {
+            show(3);
+        } else if (recipe != null) {
+            show(2);
         } else {
-            id = R.id.frame_container;
+            show(1);
         }
-        showFragment(id, recipeStepFragment, recipe.getName());
-
     }
 
     private void showRecipes() {
-        recipesFragment.setCallback(this);
-        fragmentManager = getSupportFragmentManager();
+        show(1);
+    }
 
-        bundle.putSerializable(RECIPES, recipes);
-        bundle.putBoolean(IS_TWO_PANE_LAYOUT, isTwoPaneLayout);
+    private void show(int stepNumber) {
+        switch (stepNumber) {
+            case 1:
+                recipesFragment.setCallback(this);
+                fragmentManager = getSupportFragmentManager();
 
-        recipesFragment.setArguments(bundle);
+                bundle.putSerializable(RECIPES, recipes);
+                bundle.putBoolean(IS_TWO_PANE_LAYOUT, isTwoPaneLayout);
 
-        if (isTwoPaneLayout) {
-            showFragment(R.id.recipes, recipesFragment, getString(R.string.recipes));
-        } else {
-            showFragment(R.id.frame_container, recipesFragment, getString(R.string.recipes));
+                recipesFragment.setArguments(bundle);
+
+                if (isTwoPaneLayout) {//todo refactor
+                    showFragment(R.id.recipes, recipesFragment, getString(R.string.recipes));
+                } else {
+                    showFragment(R.id.frame_container, recipesFragment, getString(R.string.recipes));
+                }
+                break;
+            case 2:
+                this.recipe = recipe;
+                bundle.putSerializable(RECIPE, recipe);
+                bundle.putBoolean(IS_TWO_PANE_LAYOUT, isTwoPaneLayout);
+
+                recipeDetailsFragment.setArguments(bundle);
+                recipeDetailsFragment.setCallback(this);
+
+                if (isTwoPaneLayout) {
+                    hideFragment(recipesFragment);
+                    showFragment(R.id.recipes_steps, recipeStepFragment, R.id.recipes_details, recipeDetailsFragment, recipe.getName());
+                    recipeStepFragment = (RecipeStepFragment) fragmentManager.findFragmentById(R.id.recipes_steps);
+                    clickOnStep(recipe.getSteps().get(0));
+                } else {
+                    showFragment(R.id.frame_container, recipeDetailsFragment, recipe.getName());
+                }
+                break;
+            case 3:
+                this.step = step;
+
+                if (isTwoPaneLayout) {
+                    recipeStepFragment.setStep(step);
+                } else {
+                    bundle.putSerializable(STEP, step);
+                    recipeStepFragment.setArguments(bundle);
+
+                    hideFragment(recipeDetailsFragment);
+                    showFragment(R.id.frame_container, recipeStepFragment, recipe.getName());
+                }
+                break;
         }
     }
 
     @Override
     public void clickOnRecipe(Recipe recipe) {
-        this.recipe = recipe;
-        bundle.putSerializable(RECIPE, recipe);
-        bundle.putBoolean(IS_TWO_PANE_LAYOUT, isTwoPaneLayout);
-
-        recipeDetailsFragment.setArguments(bundle);
-
-        recipeDetailsFragment.setCallback(this);
-
-        if (isTwoPaneLayout) {
-            hideFragment(recipesFragment);
-            showFragment(R.id.recipes_steps, recipeStepFragment, R.id.recipes_details, recipeDetailsFragment, recipe.getName());
-            recipeStepFragment = (RecipeStepFragment) fragmentManager.findFragmentById(R.id.recipes_steps);
-            clickOnStep(recipe.getSteps().get(0));
-        } else {
-            showFragment(R.id.frame_container, recipeDetailsFragment, recipe.getName());
-        }
+        show(2);
     }
 
     @Override
     public void clickOnStep(Step step) {
-        this.step = step;
-        if (isTwoPaneLayout) {
-            recipeStepFragment.setStep(step);
-        } else {
-            bundle.putSerializable(STEP, step);
-            recipeStepFragment.setArguments(bundle);
-
-            hideFragment(recipeDetailsFragment);
-            showFragment(R.id.frame_container, recipeStepFragment, recipe.getName());
-        }
+        show(3);
     }
 
     private void showFragment(int id, Fragment fragment, String title) {
@@ -169,11 +186,6 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
         }
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
-        super.onSaveInstanceState(outState, outPersistentState);
-    }
-
     private void hideFragment(Fragment fragment) {
         fragmentManager.beginTransaction().hide(fragment).commit();
     }
@@ -184,8 +196,8 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        outState.putBundle(BUNDLE, bundle);
         super.onSaveInstanceState(outState);
+        outState.putBundle(BUNDLE, bundle);
     }
 
     @Override
