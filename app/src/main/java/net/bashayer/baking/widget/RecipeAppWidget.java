@@ -23,21 +23,22 @@ import java.util.List;
 public class RecipeAppWidget extends AppWidgetProvider implements LoadRecipesCallback {
     private static List<Recipe> recipes;
     private static int recipeIndex = 0;
-    private static int ingredientIndex = 0;
 
-    public RecipeAppWidget() {
-        NetworkUtils networkUtils = new NetworkUtils(this);
-        networkUtils.loadRecipes();
-    }
+    private Context context;
+    private AppWidgetManager appWidgetManager;
+    private int[] appWidgetIds;
 
     static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-
         Recipe recipe = recipes.get(recipeIndex);
-        String string = recipe.getName()
-                + "\n"
-                + (ingredientIndex + 1)
-                + ". "
-                + recipe.getIngredients().get(ingredientIndex).toString();
+        StringBuilder string = new StringBuilder();
+        string.append(recipe.getName());
+        string.append("\n");
+        for (int i = 0; i < recipes.get(recipeIndex).getIngredients().size(); i++) {
+            string.append(i + 1)
+                    .append(". ")
+                    .append(recipe.getIngredients().get(i));
+        }
+
         updateIndex();
 
         //CharSequence widgetText = context.getString(R.string.appwidget_text);
@@ -51,14 +52,11 @@ public class RecipeAppWidget extends AppWidgetProvider implements LoadRecipesCal
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        // There may be multiple widgets active, so update all of them
-
-//        NetworkUtils networkUtils = new NetworkUtils(this);
-//        networkUtils.loadRecipes();
-//
-        for (int appWidgetId : appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId);
-        }
+        this.context = context;
+        this.appWidgetManager = appWidgetManager;
+        this.appWidgetIds = appWidgetIds;
+        NetworkUtils networkUtils = new NetworkUtils(this);
+        networkUtils.loadRecipes();
     }
 
     private static void updateIndex() {
@@ -67,13 +65,6 @@ public class RecipeAppWidget extends AppWidgetProvider implements LoadRecipesCal
         } else {
             recipeIndex++;
         }
-
-        if (ingredientIndex == recipes.get(recipeIndex).getIngredients().size()) {
-            ingredientIndex = 0;
-        } else {
-            ingredientIndex++;
-        }
-
     }
 
     @Override
@@ -89,6 +80,10 @@ public class RecipeAppWidget extends AppWidgetProvider implements LoadRecipesCal
     @Override
     public void loadRecipes(List<Recipe> recipes) {
         this.recipes = recipes;
+
+        for (int appWidgetId : appWidgetIds) {
+            updateAppWidget(context, appWidgetManager, appWidgetId);
+        }
     }
 }
 

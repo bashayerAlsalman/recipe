@@ -29,7 +29,6 @@ import static net.bashayer.baking.Constants.BUNDLE;
 import static net.bashayer.baking.Constants.IS_TWO_PANE_LAYOUT;
 import static net.bashayer.baking.Constants.RECIPE;
 import static net.bashayer.baking.Constants.RECIPES;
-import static net.bashayer.baking.Constants.RECIPE_STEP;
 import static net.bashayer.baking.Constants.STEP;
 
 public class MainActivity extends AppCompatActivity implements RecipesCallback, StepsCallback, LoadRecipesCallback {
@@ -106,32 +105,33 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
 
                 recipesFragment.setArguments(bundle);
 
-                if (isTwoPaneLayout) {//todo refactor
+                if (isTwoPaneLayout) {
                     showFragment(R.id.recipes, recipesFragment, getString(R.string.recipes));
                 } else {
                     showFragment(R.id.frame_container, recipesFragment, getString(R.string.recipes));
                 }
                 break;
             case 2:
-                this.recipe = recipe;
+                this.step = recipe.getSteps().get(0);
+
                 bundle.putSerializable(RECIPE, recipe);
+                bundle.putSerializable(STEP, step);
                 bundle.putBoolean(IS_TWO_PANE_LAYOUT, isTwoPaneLayout);
 
                 recipeDetailsFragment.setArguments(bundle);
+                recipeStepFragment.setArguments(bundle);
                 recipeDetailsFragment.setCallback(this);
 
                 if (isTwoPaneLayout) {
                     hideFragment(recipesFragment);
                     showFragment(R.id.recipes_steps, recipeStepFragment, R.id.recipes_details, recipeDetailsFragment, recipe.getName());
                     recipeStepFragment = (RecipeStepFragment) fragmentManager.findFragmentById(R.id.recipes_steps);
-                    clickOnStep(recipe.getSteps().get(0));
+                  //  clickOnStep(recipe.getSteps().get(0));
                 } else {
                     showFragment(R.id.frame_container, recipeDetailsFragment, recipe.getName());
                 }
                 break;
             case 3:
-                this.step = step;
-
                 if (isTwoPaneLayout) {
                     recipeStepFragment.setStep(step);
                 } else {
@@ -147,11 +147,13 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
 
     @Override
     public void clickOnRecipe(Recipe recipe) {
+        this.recipe = recipe;
         show(2);
     }
 
     @Override
     public void clickOnStep(Step step) {
+        this.step = step;
         show(3);
     }
 
@@ -169,8 +171,8 @@ public class MainActivity extends AppCompatActivity implements RecipesCallback, 
         getSupportActionBar().setTitle(title);
 
         fragmentManager.beginTransaction()
-                .replace(id, fragment)
-                .replace(id2, fragment2)
+                .add(id, fragment)
+                .add(id2, fragment2)
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                 .addToBackStack(null)
                 .commit();
